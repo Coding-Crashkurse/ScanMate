@@ -1,0 +1,225 @@
+===== START .\excludes.toml =====
+[exclude]
+folders = [
+  ".git",
+  "node_modules",
+  ".venv",
+  "venv",
+  "dist",
+  "build",
+  "coverage",
+  "__pycache__",
+  ".pytest_cache",
+  ".mypy_cache",
+  ".idea",
+  ".vscode"
+]
+files = [
+  ".gitignore",
+  "poetry.lock",
+  ".eslintcache",
+  "yarn.lock",
+  "package-lock.json",
+  "*.pyc"
+]
+
+===== END .\excludes.toml =====
+
+===== START .\pyproject.toml =====
+[project]
+name = "scanfiles"
+version = "0.1.0"
+description = ""
+authors = [
+    {name = "markus",email = "datamastery87@gmail.com"}
+]
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "typer (>=0.15.1,<0.16.0)",
+    "pyperclip (>=1.9.0,<2.0.0)",
+    "toml (>=0.10.2,<0.11.0)"
+]
+
+
+[build-system]
+requires = ["poetry-core>=2.0.0,<3.0.0"]
+build-backend = "poetry.core.masonry.api"
+
+
+[tool.poetry.scripts]
+scanfiles = "scanfiles.cli:app"
+
+
+===== END .\pyproject.toml =====
+
+===== START .\README.md =====
+
+===== END .\README.md =====
+
+===== START .\scanfiles\cli.py =====
+# scanfiles/cli.py
+
+import os
+import typer
+import toml
+import pyperclip
+
+app = typer.Typer(help="CLI-Tool zum Scannen von Ordnern und Dateien.")
+
+
+def load_exclusions(toml_path: str = "excludes.toml"):
+    """
+    Lädt die auszuschließenden Ordner und Dateien aus einer TOML-Datei.
+    """
+    if not os.path.exists(toml_path):
+        typer.echo(f"Warnung: {toml_path} nicht gefunden, keine Excludes definiert.")
+        return [], []
+
+    data = toml.load(toml_path)
+    exclude_folders = data.get("exclude", {}).get("folders", [])
+    exclude_files = data.get("exclude", {}).get("files", [])
+
+    return exclude_folders, exclude_files
+
+
+@app.command()
+def scan(
+    directory: str = typer.Argument(
+        ".",
+        help="Das Verzeichnis, das gescannt werden soll (Standard = aktuelles Verzeichnis).",
+    ),
+    copy: bool = typer.Option(
+        False,
+        "--copy",
+        "-c",
+        help="Wenn gesetzt, wird der Inhalt jeder Datei direkt in die Zwischenablage kopiert.",
+    ),
+    toml_path: str = typer.Option(
+        "excludes.toml",
+        "--exclude-config",
+        "-e",
+        help="Pfad zur TOML-Datei, in der Ausschlüsse definiert sind.",
+    ),
+    save_content: bool = typer.Option(
+        False,
+        "--save-content",
+        help="Wenn gesetzt, wird der Inhalt aller Dateien in eine gemeinsame Datei (code.txt) geschrieben.",
+    ),
+):
+    """
+    Scannt rekursiv alle Dateien im angegebenen Verzeichnis und listet sie auf.
+    Bestimmte Dateien/Ordner können per TOML-Datei ausgeschlossen werden.
+
+    - '--copy' kopiert den Inhalt der Dateien in die Zwischenablage.
+    - '--save-content' speichert den Inhalt in 'code.txt', in separaten Abschnitten.
+    """
+    exclude_folders, exclude_files = load_exclusions(toml_path)
+
+    # Damit wir uns nicht selbst wieder scannen:
+    exclude_files.append("code.txt")
+
+    for root, dirs, files in os.walk(directory, topdown=True):
+        # Ausgeschlossene Ordner entfernen
+        dirs[:] = [d for d in dirs if d not in exclude_folders]
+
+        for filename in files:
+            if filename in exclude_files:
+                continue
+
+            file_path = os.path.join(root, filename)
+
+            # Inhalt einlesen
+            try:
+                with open(file_path, "r", encoding="utf-8") as f:
+                    content = f.read()
+            except Exception as e:
+                typer.echo(f"Datei {file_path} konnte nicht gelesen werden: {e}")
+                continue
+
+            # Ausgabe (ohne den Inhalt im Terminal zu loggen)
+            typer.echo(f"Ordner: {root}")
+            typer.echo(f"Datei : {file_path}")
+            typer.echo("------")
+
+            # Optional: Inhalt in Zwischenablage kopieren
+            if copy:
+                pyperclip.copy(content)
+                typer.echo(f"Inhalt der Datei '{filename}' in Zwischenablage kopiert!")
+
+            # Optional: Alle Inhalte in *eine* Datei "code.txt" schreiben
+            if save_content:
+                try:
+                    with open("code.txt", "a", encoding="utf-8") as out_f:
+                        out_f.write(f"===== START {file_path} =====\n")
+                        out_f.write(content)
+                        out_f.write(f"\n===== END {file_path} =====\n\n")
+                    typer.echo(f"Inhalt von '{filename}' in 'code.txt' angehängt.")
+                except Exception as e:
+                    typer.echo(f"Konnte 'code.txt' nicht beschreiben: {e}")
+
+            typer.echo("------\n")
+
+
+@app.command()
+def init():
+    """
+    Erstellt eine beispielhafte excludes.toml mit Beispiel-Einträgen
+    für gängige Python- und JavaScript-Projekte (z.B. virtuelle Umgebungen).
+    """
+    excludes_file = "excludes.toml"
+    if os.path.exists(excludes_file):
+        typer.echo(f"'{excludes_file}' existiert bereits. Abbruch.")
+        raise typer.Exit(code=1)
+
+    # Beispiel-Inhalt für excludes.toml (Python-/JS-typische Ordner & Dateien)
+    sample_excludes = """[exclude]
+folders = [
+  ".git",
+  "node_modules",
+  ".venv",
+  "venv",
+  "dist",
+  "build",
+  "coverage",
+  "__pycache__",
+  ".pytest_cache",
+  ".mypy_cache",
+  ".idea",
+  ".vscode"
+]
+files = [
+  ".gitignore",
+  "poetry.lock",
+  ".eslintcache",
+  "yarn.lock",
+  "package-lock.json",
+  "*.pyc"
+]
+"""
+
+    try:
+        with open(excludes_file, "w", encoding="utf-8") as f:
+            f.write(sample_excludes.strip() + "\n")
+        typer.echo(f"Beispiel '{excludes_file}' wurde erstellt.")
+    except Exception as e:
+        typer.echo(f"Konnte '{excludes_file}' nicht erstellen: {e}")
+
+
+if __name__ == "__main__":
+    app()
+
+===== END .\scanfiles\cli.py =====
+
+===== START .\scanfiles\__init__.py =====
+
+===== END .\scanfiles\__init__.py =====
+
+===== START .\tests\__init__.py =====
+
+===== END .\tests\__init__.py =====
+
+===== START .\tests\__init__.py.scan.txt =====
+
+===== END .\tests\__init__.py.scan.txt =====
+

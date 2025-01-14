@@ -1,0 +1,23 @@
+[exclude]
+folders = [
+  ".git",
+  "node_modules",
+  ".venv",
+  "venv",
+  "dist",
+  "build",
+  "coverage",
+  "__pycache__",
+  ".pytest_cache",
+  ".mypy_cache",
+  ".idea",
+  ".vscode"
+]
+files = [
+  ".gitignore",
+  "poetry.lock",
+  ".eslintcache",
+  "yarn.lock",
+  "package-lock.json",
+  "*.pyc"
+]
