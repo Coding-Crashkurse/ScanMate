@@ -22,3 +22,6 @@ build-backend = "poetry.core.masonry.api"
 [tool.poetry.scripts]
 scanfiles = "scanfiles.cli:app"
 
+[tool.poetry.group.dev.dependencies]
+pytest = "^8.3.4"
+
