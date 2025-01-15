@@ -1,5 +1,5 @@
 [project]
-name = "scanfiles"
+name = "scanmate"
 version = "0.1.0"
 description = ""
 authors = [
@@ -20,7 +20,7 @@ build-backend = "poetry.core.masonry.api"
 
 
 [tool.poetry.scripts]
-scanfiles = "scanfiles.cli:app"
+scanfiles = "scanmate.cli:app"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^8.3.4"
