@@ -1,8 +1,9 @@
 # scanfiles/cli.py
 
 import os
-import typer
+
 import toml
+import typer
 
 app = typer.Typer(
     help="A CLI tool for scanning directories in a tree structure with file counts and line counts."

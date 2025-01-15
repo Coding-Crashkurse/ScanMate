@@ -2,18 +2,13 @@
 
 import os
 import shutil
-import pytest
 from pathlib import Path
-from unittest.mock import patch, mock_open
+from unittest.mock import mock_open, patch
+
+import pytest
 from typer.testing import CliRunner
 
-from scanfiles.cli import (
-    app,
-    load_exclusions,
-    build_stats,
-    print_stats,
-)
-
+from scanmate.cli import app, build_stats, load_exclusions, print_stats
 
 runner = CliRunner()
 
@@ -101,8 +96,8 @@ def test_print_stats_capture(temp_dir):
     stats = build_stats(str(temp_dir), [], [])
 
     # We'll capture the output of print_stats
-    from io import StringIO
     import sys
+    from io import StringIO
 
     backup_stdout = sys.stdout
     try:
